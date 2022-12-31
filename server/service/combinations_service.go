@@ -7,7 +7,7 @@ import (
 
 func CalculateBestCombination(cardSequence dto.CardsSequence) dto.CardsCombination {
 	sort.Slice(cardSequence.Cards, func(i, j int) bool {
-		return dto.CardValuesByWeight[cardSequence.Cards[i].CardValue] < dto.CardValuesByWeight[cardSequence.Cards[j].CardValue]
+		return cardSequence.Cards[i].CardValue.ValueWeight < cardSequence.Cards[j].CardValue.ValueWeight
 	})
 
 	existingCombinations := make(dto.ExistingCombinations)
@@ -57,9 +57,9 @@ func fillData(cards []dto.PlayingCard) ([]dto.CardValue, map[dto.CardValue]dto.C
 	higherValue := -1
 
 	for _, card := range cards {
-		if dto.CardValuesByWeight[card.CardValue] > higherValue {
+		if card.CardValue.ValueWeight > higherValue {
 			highestCard = card
-			higherValue = dto.CardValuesByWeight[card.CardValue]
+			higherValue = card.CardValue.ValueWeight
 		}
 
 		cardSuit := card.CardSuit

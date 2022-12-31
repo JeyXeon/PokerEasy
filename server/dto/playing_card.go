@@ -5,26 +5,30 @@ import (
 	"strings"
 )
 
-type CardValue string
+type CardValue struct {
+	ValueName   string
+	ValueWeight int
+}
+
 type CardSuit string
 
 type PlayingCard struct {
-	ID        uint
+	ID        int
 	CardValue CardValue
 	CardSuit  CardSuit
 }
 
 func (playingCard PlayingCard) ToString() string {
-	return fmt.Sprintf("{Id: %d, Suit: %s, Value: %s}", playingCard.ID, playingCard.CardSuit, playingCard.CardValue)
+	return fmt.Sprintf("{Id: %d, Suit: %s, Value: %s}", playingCard.ID, playingCard.CardSuit, playingCard.CardValue.ValueName)
 }
 
 type CardsSequence struct {
-	CardsByIds map[uint]PlayingCard
+	CardsByIds map[int]PlayingCard
 	Cards      []PlayingCard
 }
 
 func NewCardSequence(cards []PlayingCard) CardsSequence {
-	cardsByIds := make(map[uint]PlayingCard)
+	cardsByIds := make(map[int]PlayingCard)
 	for _, card := range cards {
 		cardsByIds[card.ID] = card
 	}
@@ -46,7 +50,7 @@ func (cardsSequence CardsSequence) Equals(another CardsSequence) bool {
 
 func (cardsSequence CardsSequence) ToString() string {
 	sb := strings.Builder{}
-	sb.WriteString("Sequence { ")
+	sb.WriteString("{ ")
 	for _, card := range cardsSequence.Cards {
 		sb.WriteString(card.ToString())
 		sb.WriteString(" ")
@@ -55,74 +59,77 @@ func (cardsSequence CardsSequence) ToString() string {
 	return sb.String()
 }
 
-var CardValuesByWeight = map[CardValue]int{
-	"TWO":   2,
-	"THREE": 3,
-	"FOUR":  4,
-	"FIVE":  5,
-	"SIX":   6,
-	"SEVEN": 7,
-	"EIGHT": 8,
-	"NINE":  9,
-	"TEN":   10,
-	"JACK":  11,
-	"QUEEN": 12,
-	"KING":  13,
-	"ACE":   14,
-}
+var SpadeSuit = CardSuit("SPADE")
+var ClubSuit = CardSuit("CLUB")
+var DiamondSuit = CardSuit("DIAMOND")
+var HeartSuit = CardSuit("HEART")
 
-var DiamondTwo = PlayingCard{0, "TWO", "DIAMOND"}
-var DiamondThree = PlayingCard{1, "THREE", "DIAMOND"}
-var DiamondFour = PlayingCard{2, "FOUR", "DIAMOND"}
-var DiamondFive = PlayingCard{3, "FIVE", "DIAMOND"}
-var DiamondSix = PlayingCard{4, "SIX", "DIAMOND"}
-var DiamondSeven = PlayingCard{5, "SEVEN", "DIAMOND"}
-var DiamondEight = PlayingCard{6, "EIGHT", "DIAMOND"}
-var DiamondNine = PlayingCard{7, "NINE", "DIAMOND"}
-var DiamondTen = PlayingCard{8, "TEN", "DIAMOND"}
-var DiamondJack = PlayingCard{9, "JACK", "DIAMOND"}
-var DiamondQueen = PlayingCard{10, "QUEEN", "DIAMOND"}
-var DiamondKing = PlayingCard{11, "KING", "DIAMOND"}
-var DiamondAce = PlayingCard{12, "ACE", "DIAMOND"}
-var HeartTwo = PlayingCard{13, "TWO", "HEART"}
-var HeartThree = PlayingCard{14, "THREE", "HEART"}
-var HeartFour = PlayingCard{15, "FOUR", "HEART"}
-var HeartFive = PlayingCard{16, "FIVE", "HEART"}
-var HeartSix = PlayingCard{17, "SIX", "HEART"}
-var HeartSeven = PlayingCard{18, "SEVEN", "HEART"}
-var HeartEight = PlayingCard{19, "EIGHT", "HEART"}
-var HeartNine = PlayingCard{20, "NINE", "HEART"}
-var HeartTen = PlayingCard{21, "TEN", "HEART"}
-var HeartJack = PlayingCard{22, "JACK", "HEART"}
-var HeartQueen = PlayingCard{23, "QUEEN", "HEART"}
-var HeartKing = PlayingCard{24, "KING", "HEART"}
-var HeartAce = PlayingCard{25, "ACE", "HEART"}
-var ClubTwo = PlayingCard{26, "TWO", "CLUB"}
-var ClubThree = PlayingCard{27, "THREE", "CLUB"}
-var ClubFour = PlayingCard{28, "FOUR", "CLUB"}
-var ClubFive = PlayingCard{29, "FIVE", "CLUB"}
-var ClubSix = PlayingCard{30, "SIX", "CLUB"}
-var ClubSeven = PlayingCard{31, "SEVEN", "CLUB"}
-var ClubEight = PlayingCard{32, "EIGHT", "CLUB"}
-var ClubNine = PlayingCard{33, "NINE", "CLUB"}
-var ClubTen = PlayingCard{34, "TEN", "CLUB"}
-var ClubJack = PlayingCard{35, "JACK", "CLUB"}
-var ClubQueen = PlayingCard{36, "QUEEN", "CLUB"}
-var ClubKing = PlayingCard{37, "KING", "CLUB"}
-var ClubAce = PlayingCard{38, "ACE", "CLUB"}
-var SpadeTwo = PlayingCard{39, "TWO", "SPADE"}
-var SpadeThree = PlayingCard{40, "THREE", "SPADE"}
-var SpadeFour = PlayingCard{41, "FOUR", "SPADE"}
-var SpadeFive = PlayingCard{42, "FIVE", "SPADE"}
-var SpadeSix = PlayingCard{43, "SIX", "SPADE"}
-var SpadeSeven = PlayingCard{44, "SEVEN", "SPADE"}
-var SpadeEight = PlayingCard{45, "EIGHT", "SPADE"}
-var SpadeNine = PlayingCard{46, "NINE", "SPADE"}
-var SpadeTen = PlayingCard{47, "TEN", "SPADE"}
-var SpadeJack = PlayingCard{48, "JACK", "SPADE"}
-var SpadeQueen = PlayingCard{49, "QUEEN", "SPADE"}
-var SpadeKing = PlayingCard{50, "KING", "SPADE"}
-var SpadeAce = PlayingCard{51, "ACE", "SPADE"}
+var TwoValue = CardValue{ValueName: "TWO", ValueWeight: 2}
+var ThreeValue = CardValue{ValueName: "THREE", ValueWeight: 3}
+var FourValue = CardValue{ValueName: "FOUR", ValueWeight: 4}
+var FiveValue = CardValue{ValueName: "FIVE", ValueWeight: 5}
+var SixValue = CardValue{ValueName: "SIX", ValueWeight: 6}
+var SevenValue = CardValue{ValueName: "SEVEN", ValueWeight: 7}
+var EightValue = CardValue{ValueName: "EIGHT", ValueWeight: 8}
+var NineValue = CardValue{ValueName: "NINE", ValueWeight: 9}
+var TenValue = CardValue{ValueName: "TEN", ValueWeight: 10}
+var JackValue = CardValue{ValueName: "JACK", ValueWeight: 11}
+var QueenValue = CardValue{ValueName: "QUEEN", ValueWeight: 12}
+var KingValue = CardValue{ValueName: "KING", ValueWeight: 13}
+var AceValue = CardValue{ValueName: "ACE", ValueWeight: 14}
+
+var DiamondTwo = PlayingCard{0, TwoValue, DiamondSuit}
+var DiamondThree = PlayingCard{1, ThreeValue, DiamondSuit}
+var DiamondFour = PlayingCard{2, FourValue, DiamondSuit}
+var DiamondFive = PlayingCard{3, FiveValue, DiamondSuit}
+var DiamondSix = PlayingCard{4, SixValue, DiamondSuit}
+var DiamondSeven = PlayingCard{5, SevenValue, DiamondSuit}
+var DiamondEight = PlayingCard{6, EightValue, DiamondSuit}
+var DiamondNine = PlayingCard{7, NineValue, DiamondSuit}
+var DiamondTen = PlayingCard{8, TenValue, DiamondSuit}
+var DiamondJack = PlayingCard{9, JackValue, DiamondSuit}
+var DiamondQueen = PlayingCard{10, QueenValue, DiamondSuit}
+var DiamondKing = PlayingCard{11, KingValue, DiamondSuit}
+var DiamondAce = PlayingCard{12, AceValue, DiamondSuit}
+var HeartTwo = PlayingCard{13, TwoValue, HeartSuit}
+var HeartThree = PlayingCard{14, ThreeValue, HeartSuit}
+var HeartFour = PlayingCard{15, FourValue, HeartSuit}
+var HeartFive = PlayingCard{16, FiveValue, HeartSuit}
+var HeartSix = PlayingCard{17, SixValue, HeartSuit}
+var HeartSeven = PlayingCard{18, SevenValue, HeartSuit}
+var HeartEight = PlayingCard{19, EightValue, HeartSuit}
+var HeartNine = PlayingCard{20, NineValue, HeartSuit}
+var HeartTen = PlayingCard{21, TenValue, HeartSuit}
+var HeartJack = PlayingCard{22, JackValue, HeartSuit}
+var HeartQueen = PlayingCard{23, QueenValue, HeartSuit}
+var HeartKing = PlayingCard{24, KingValue, HeartSuit}
+var HeartAce = PlayingCard{25, AceValue, HeartSuit}
+var ClubTwo = PlayingCard{26, TwoValue, ClubSuit}
+var ClubThree = PlayingCard{27, ThreeValue, ClubSuit}
+var ClubFour = PlayingCard{28, FourValue, ClubSuit}
+var ClubFive = PlayingCard{29, FiveValue, ClubSuit}
+var ClubSix = PlayingCard{30, SixValue, ClubSuit}
+var ClubSeven = PlayingCard{31, SevenValue, ClubSuit}
+var ClubEight = PlayingCard{32, EightValue, ClubSuit}
+var ClubNine = PlayingCard{33, NineValue, ClubSuit}
+var ClubTen = PlayingCard{34, TenValue, ClubSuit}
+var ClubJack = PlayingCard{35, JackValue, ClubSuit}
+var ClubQueen = PlayingCard{36, QueenValue, ClubSuit}
+var ClubKing = PlayingCard{37, KingValue, ClubSuit}
+var ClubAce = PlayingCard{38, AceValue, ClubSuit}
+var SpadeTwo = PlayingCard{39, TwoValue, SpadeSuit}
+var SpadeThree = PlayingCard{40, ThreeValue, SpadeSuit}
+var SpadeFour = PlayingCard{41, FourValue, SpadeSuit}
+var SpadeFive = PlayingCard{42, FiveValue, SpadeSuit}
+var SpadeSix = PlayingCard{43, SixValue, SpadeSuit}
+var SpadeSeven = PlayingCard{44, SevenValue, SpadeSuit}
+var SpadeEight = PlayingCard{45, EightValue, SpadeSuit}
+var SpadeNine = PlayingCard{46, NineValue, SpadeSuit}
+var SpadeTen = PlayingCard{47, TenValue, SpadeSuit}
+var SpadeJack = PlayingCard{48, JackValue, SpadeSuit}
+var SpadeQueen = PlayingCard{49, QueenValue, SpadeSuit}
+var SpadeKing = PlayingCard{50, KingValue, SpadeSuit}
+var SpadeAce = PlayingCard{51, AceValue, SpadeSuit}
 
 var AvailableCards = []PlayingCard{
 	DiamondTwo,

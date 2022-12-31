@@ -44,7 +44,7 @@ func (existingCombinations ExistingCombinations) AddAbstractFlush(flushSequence 
 }
 
 func (existingCombinations ExistingCombinations) AddStraightFlush(maxStraightSequence CardsSequence) {
-	if maxStraightSequence.Cards[len(maxStraightSequence.Cards)-1].CardValue == "ACE" {
+	if maxStraightSequence.Cards[len(maxStraightSequence.Cards)-1].CardValue.ValueName == "ACE" {
 		existingCombinations[FlushRoyalName] = maxStraightSequence
 	} else {
 		existingCombinations[StraightFlushName] = maxStraightSequence
@@ -79,7 +79,7 @@ func (existingCombinations ExistingCombinations) AddStraight(cardsSequence Cards
 
 func (existingCombinations ExistingCombinations) AddPair(cardsSequence CardsSequence, cardValue CardValue) {
 	existingPair, hasPair := existingCombinations[PairName]
-	if !hasPair || (hasPair && existingPair.Cards[0].CardValue < cardValue) {
+	if !hasPair || (hasPair && existingPair.Cards[0].CardValue.ValueWeight < cardValue.ValueWeight) {
 		existingCombinations[PairName] = cardsSequence
 	}
 	if hasPair {
@@ -95,7 +95,7 @@ func (existingCombinations ExistingCombinations) AddThreeOfAKind(cardsSequence C
 	}
 
 	existingThreeOfAKind, hasThreeOfAKind := existingCombinations[ThreeOfAKindName]
-	if !hasThreeOfAKind || (hasThreeOfAKind && existingThreeOfAKind.Cards[0].CardValue < cardValue) {
+	if !hasThreeOfAKind || (hasThreeOfAKind && existingThreeOfAKind.Cards[0].CardValue.ValueWeight < cardValue.ValueWeight) {
 		existingCombinations[ThreeOfAKindName] = cardsSequence
 	}
 }
@@ -125,15 +125,15 @@ func hasStraight(sortedCards []PlayingCard) (bool, CardsSequence) {
 	for i := len(sortedCards) - 1; i >= 0; i-- {
 		card := sortedCards[i]
 		cardValue := card.CardValue
-		if lastValue-CardValuesByWeight[cardValue] == 1 {
+		if lastValue-cardValue.ValueWeight == 1 {
 			sequence[counter-1] = card
-			lastValue = CardValuesByWeight[cardValue]
+			lastValue = cardValue.ValueWeight
 			counter--
 		} else {
 			sequence = make([]PlayingCard, 5)
 			counter = 4
 			sequence[counter] = card
-			lastValue = CardValuesByWeight[cardValue]
+			lastValue = cardValue.ValueWeight
 		}
 
 		if counter == 0 {
