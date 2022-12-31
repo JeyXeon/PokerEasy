@@ -29,13 +29,13 @@ var CombinationNamesByValues = map[string]int{
 type CardsCombination struct {
 	CombinationName     string
 	CombinationValue    int
-	CombinationSequence []PlayingCard
+	CombinationSequence CardsSequence
 }
 
-type ExistingCombinations map[string][]PlayingCard
+type ExistingCombinations map[string]CardsSequence
 
-func (existingCombinations ExistingCombinations) AddAbstractFlush(flushSequence []PlayingCard) {
-	hasStraight, maxStraightSequence := hasStraight(flushSequence)
+func (existingCombinations ExistingCombinations) AddAbstractFlush(flushSequence CardsSequence) {
+	hasStraight, maxStraightSequence := hasStraight(flushSequence.Cards)
 	if hasStraight {
 		existingCombinations.AddStraightFlush(maxStraightSequence)
 	} else {
@@ -43,66 +43,66 @@ func (existingCombinations ExistingCombinations) AddAbstractFlush(flushSequence 
 	}
 }
 
-func (existingCombinations ExistingCombinations) AddStraightFlush(maxStraightSequence []PlayingCard) {
-	if maxStraightSequence[len(maxStraightSequence)-1].CardValue == "ACE" {
+func (existingCombinations ExistingCombinations) AddStraightFlush(maxStraightSequence CardsSequence) {
+	if maxStraightSequence.Cards[len(maxStraightSequence.Cards)-1].CardValue == "ACE" {
 		existingCombinations[FlushRoyalName] = maxStraightSequence
 	} else {
 		existingCombinations[StraightFlushName] = maxStraightSequence
 	}
 }
 
-func (existingCombinations ExistingCombinations) AddFlush(cardsSequence []PlayingCard) {
-	firstSequenceCardIdx := len(cardsSequence) - 5
-	lastSequenceCardIdx := len(cardsSequence) - 1
-	maxFlushSequence := cardsSequence[firstSequenceCardIdx:lastSequenceCardIdx]
-	existingCombinations[FlushName] = maxFlushSequence
+func (existingCombinations ExistingCombinations) AddFlush(cardsSequence CardsSequence) {
+	firstSequenceCardIdx := len(cardsSequence.Cards) - 5
+	lastSequenceCardIdx := len(cardsSequence.Cards)
+	maxFlushSequence := cardsSequence.Cards[firstSequenceCardIdx:lastSequenceCardIdx]
+	existingCombinations[FlushName] = NewCardSequence(maxFlushSequence)
 }
 
-func (existingCombinations ExistingCombinations) AddFourOfAKind(playingCards []PlayingCard) {
-	existingCombinations[FourOfAKindName] = playingCards
+func (existingCombinations ExistingCombinations) AddFourOfAKind(cardsSequence CardsSequence) {
+	existingCombinations[FourOfAKindName] = cardsSequence
 }
 
 func (existingCombinations ExistingCombinations) AddFullHouse() {
 	threeSequence := existingCombinations[PairName]
 	pairSequence := existingCombinations[ThreeOfAKindName]
-	fullHouseSequence := append(pairSequence, threeSequence...)
-	existingCombinations[FullHouseName] = fullHouseSequence
+	fullHouseSequence := append(pairSequence.Cards, threeSequence.Cards...)
+	existingCombinations[FullHouseName] = NewCardSequence(fullHouseSequence)
 
 }
 
-func (existingCombinations ExistingCombinations) AddStraight(cards []PlayingCard) {
-	hasStraight, sequence := hasStraight(cards)
+func (existingCombinations ExistingCombinations) AddStraight(cardsSequence CardsSequence) {
+	hasStraight, sequence := hasStraight(cardsSequence.Cards)
 	if hasStraight {
 		existingCombinations[StraightName] = sequence
 	}
 }
 
-func (existingCombinations ExistingCombinations) AddPair(playingCards []PlayingCard, cardValue CardValue) {
+func (existingCombinations ExistingCombinations) AddPair(cardsSequence CardsSequence, cardValue CardValue) {
 	existingPair, hasPair := existingCombinations[PairName]
-	if !hasPair || (hasPair && existingPair[0].CardValue < cardValue) {
-		existingCombinations[PairName] = playingCards
+	if !hasPair || (hasPair && existingPair.Cards[0].CardValue < cardValue) {
+		existingCombinations[PairName] = cardsSequence
 	}
 	if hasPair {
-		twoPairsSequence := append(existingPair, playingCards...)
-		existingCombinations[TwoPairsName] = twoPairsSequence
+		twoPairsSequence := append(existingPair.Cards, cardsSequence.Cards...)
+		existingCombinations[TwoPairsName] = NewCardSequence(twoPairsSequence)
 	}
 }
 
-func (existingCombinations ExistingCombinations) AddThreeOfAKind(playingCards []PlayingCard, cardValue CardValue) {
+func (existingCombinations ExistingCombinations) AddThreeOfAKind(cardsSequence CardsSequence, cardValue CardValue) {
 	_, hasPair := existingCombinations[PairName]
 	if !hasPair {
-		existingCombinations[PairName] = playingCards[0:1]
+		existingCombinations[PairName] = NewCardSequence(cardsSequence.Cards[0:1])
 	}
 
 	existingThreeOfAKind, hasThreeOfAKind := existingCombinations[ThreeOfAKindName]
-	if !hasThreeOfAKind || (hasThreeOfAKind && existingThreeOfAKind[0].CardValue < cardValue) {
-		existingCombinations[ThreeOfAKindName] = playingCards
+	if !hasThreeOfAKind || (hasThreeOfAKind && existingThreeOfAKind.Cards[0].CardValue < cardValue) {
+		existingCombinations[ThreeOfAKindName] = cardsSequence
 	}
 }
 
 func (existingCombinations ExistingCombinations) AddHighCard(highestCard PlayingCard) {
 	if len(existingCombinations) == 0 {
-		existingCombinations[HighCardName] = []PlayingCard{highestCard}
+		existingCombinations[HighCardName] = NewCardSequence([]PlayingCard{highestCard})
 	}
 }
 
@@ -115,10 +115,10 @@ func (existingCombinations ExistingCombinations) HasStraightFlush() bool {
 func (existingCombinations ExistingCombinations) HasFullHouse() bool {
 	threeSequence, hasPair := existingCombinations[PairName]
 	pairSequence, hasThreeOfAKind := existingCombinations[ThreeOfAKindName]
-	return hasPair && hasThreeOfAKind && threeSequence[0].CardValue != pairSequence[0].CardValue
+	return hasPair && hasThreeOfAKind && threeSequence.Cards[0].CardValue != pairSequence.Cards[0].CardValue
 }
 
-func hasStraight(sortedCards []PlayingCard) (bool, []PlayingCard) {
+func hasStraight(sortedCards []PlayingCard) (bool, CardsSequence) {
 	counter := 5
 	sequence := make([]PlayingCard, 5)
 	lastValue := -1
@@ -137,9 +137,9 @@ func hasStraight(sortedCards []PlayingCard) (bool, []PlayingCard) {
 		}
 
 		if counter == 0 {
-			return true, sequence
+			return true, NewCardSequence(sequence)
 		}
 	}
 
-	return false, nil
+	return false, CardsSequence{}
 }

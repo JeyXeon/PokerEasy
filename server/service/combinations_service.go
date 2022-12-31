@@ -1,42 +1,42 @@
-package combinations
+package service
 
 import (
 	"github.com/JeyXeon/poker-easy/dto"
 	"sort"
 )
 
-func CalculateBestCombination(cards []dto.PlayingCard) dto.CardsCombination {
-	sort.Slice(cards, func(i, j int) bool {
-		return dto.CardValuesByWeight[cards[i].CardValue] < dto.CardValuesByWeight[cards[j].CardValue]
+func CalculateBestCombination(cardSequence dto.CardsSequence) dto.CardsCombination {
+	sort.Slice(cardSequence.Cards, func(i, j int) bool {
+		return dto.CardValuesByWeight[cardSequence.Cards[i].CardValue] < dto.CardValuesByWeight[cardSequence.Cards[j].CardValue]
 	})
 
 	existingCombinations := make(dto.ExistingCombinations)
 
-	cardValues, cardsByValues, cardsBySuites, highestCard := fillData(cards)
+	cardValues, cardsByValues, cardsBySuites, highestCard := fillData(cardSequence.Cards)
 
-	for _, playingCards := range cardsBySuites {
-		if len(playingCards) >= 5 {
-			existingCombinations.AddAbstractFlush(playingCards)
+	for _, suitCardSequence := range cardsBySuites {
+		if len(suitCardSequence.Cards) >= 5 {
+			existingCombinations.AddAbstractFlush(suitCardSequence)
 		}
 	}
 
 	for _, cardValue := range cardValues {
-		playingCards := cardsByValues[cardValue]
-		if len(playingCards) == 4 {
-			existingCombinations.AddFourOfAKind(playingCards)
+		valueCardSequence := cardsByValues[cardValue]
+		if len(valueCardSequence.Cards) == 4 {
+			existingCombinations.AddFourOfAKind(valueCardSequence)
 		}
 
-		if len(playingCards) == 2 {
-			existingCombinations.AddPair(playingCards, cardValue)
+		if len(valueCardSequence.Cards) == 2 {
+			existingCombinations.AddPair(valueCardSequence, cardValue)
 		}
 
-		if len(playingCards) == 3 {
-			existingCombinations.AddThreeOfAKind(playingCards, cardValue)
+		if len(valueCardSequence.Cards) == 3 {
+			existingCombinations.AddThreeOfAKind(valueCardSequence, cardValue)
 		}
 	}
 
 	if !existingCombinations.HasStraightFlush() {
-		existingCombinations.AddStraight(cards)
+		existingCombinations.AddStraight(cardSequence)
 	}
 
 	if existingCombinations.HasFullHouse() {
@@ -49,7 +49,7 @@ func CalculateBestCombination(cards []dto.PlayingCard) dto.CardsCombination {
 	return bestCombination
 }
 
-func fillData(cards []dto.PlayingCard) ([]dto.CardValue, map[dto.CardValue][]dto.PlayingCard, map[dto.CardSuit][]dto.PlayingCard, dto.PlayingCard) {
+func fillData(cards []dto.PlayingCard) ([]dto.CardValue, map[dto.CardValue]dto.CardsSequence, map[dto.CardSuit]dto.CardsSequence, dto.PlayingCard) {
 	cardValues := make([]dto.CardValue, 0, 7)
 	cardsByValues := make(map[dto.CardValue][]dto.PlayingCard)
 	cardsBySuites := make(map[dto.CardSuit][]dto.PlayingCard)
@@ -84,10 +84,21 @@ func fillData(cards []dto.PlayingCard) ([]dto.CardValue, map[dto.CardValue][]dto
 		cardsBySuites[cardSuit] = append(cardsBySuites[cardSuit], card)
 	}
 
-	return cardValues, cardsByValues, cardsBySuites, highestCard
+	sequenceByValue := make(map[dto.CardValue]dto.CardsSequence)
+	sequenceBySuit := make(map[dto.CardSuit]dto.CardsSequence)
+
+	for value, cards := range cardsByValues {
+		sequenceByValue[value] = dto.NewCardSequence(cards)
+	}
+
+	for suit, cards := range cardsBySuites {
+		sequenceBySuit[suit] = dto.NewCardSequence(cards)
+	}
+
+	return cardValues, sequenceByValue, sequenceBySuit, highestCard
 }
 
-func chooseBestCombination(existingCombinations map[string][]dto.PlayingCard) dto.CardsCombination {
+func chooseBestCombination(existingCombinations map[string]dto.CardsSequence) dto.CardsCombination {
 	var bestCombination dto.CardsCombination
 	bestCombinationValue := -1
 
