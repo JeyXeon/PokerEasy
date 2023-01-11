@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/JeyXeon/poker-easy/service"
 	"github.com/gofiber/fiber/v2"
@@ -10,19 +11,16 @@ import (
 	"strconv"
 )
 
-type LobbyService interface {
-	SaveNewLobby(lobby model.Lobby) model.Lobby
-	GetLobbyById(lobbyId int) model.Lobby
-	GetAllLobbies() model.Lobbies
-}
-
 type LobbyHandlers struct {
-	lobbyService LobbyService
+	lobbyService common.LobbyService
+	gameService  common.GameService
 }
 
 func GetLobbyHandlers() *LobbyHandlers {
-	lobbyService := service.GetLobbyService()
-	return &LobbyHandlers{lobbyService: lobbyService}
+	lobbyHandlers := new(LobbyHandlers)
+	lobbyHandlers.lobbyService = service.GetLobbyService()
+	lobbyHandlers.gameService = service.GetGameService()
+	return lobbyHandlers
 }
 
 type CreateLobbyRequest struct {
@@ -49,7 +47,7 @@ func (lobbyHandlers *LobbyHandlers) CreateLobby(c *fiber.Ctx) error {
 
 	lobbyService := lobbyHandlers.lobbyService
 	createdLobby := lobbyService.SaveNewLobby(lobby)
-	return c.SendString(fmt.Sprintf("Created lobby: %s.", createdLobby.ToString()))
+	return c.JSON(createdLobby)
 }
 
 func (lobbyHandlers *LobbyHandlers) GetLobbyById(c *fiber.Ctx) error {
@@ -66,12 +64,17 @@ func (lobbyHandlers *LobbyHandlers) GetLobbyById(c *fiber.Ctx) error {
 	lobbyService := lobbyHandlers.lobbyService
 	existingLobby := lobbyService.GetLobbyById(lobbyId)
 
-	return c.SendString(fmt.Sprintf("Found lobby: %s.", existingLobby.ToString()))
+	return c.JSON(existingLobby)
 }
 
 func (lobbyHandlers *LobbyHandlers) GetAllLobbies(c *fiber.Ctx) error {
 	lobbyService := lobbyHandlers.lobbyService
 	allLobbies := lobbyService.GetAllLobbies()
 
-	return c.SendString(fmt.Sprintf("Found lobbies: %s.", allLobbies.ToString()))
+	return c.JSON(allLobbies)
+}
+
+func (lobbyHandlers *LobbyHandlers) ConnectToLobby(c *websocket.Conn) {
+	gameService := lobbyHandlers.gameService
+	gameService.ListenWebsocket(c)
 }
