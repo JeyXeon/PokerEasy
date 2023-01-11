@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/JeyXeon/poker-easy/service"
 	"github.com/gofiber/fiber/v2"
@@ -9,18 +10,14 @@ import (
 	"strconv"
 )
 
-type AccountService interface {
-	SaveNewUser(accountDto model.Account) model.Account
-	GetUserById(userId int) model.Account
-}
-
 type AccountHandlers struct {
-	accountService AccountService
+	accountService common.AccountService
 }
 
 func GetAccountHandlers() *AccountHandlers {
-	accountService := service.GetAccountService()
-	return &AccountHandlers{accountService: accountService}
+	accountHandlers := new(AccountHandlers)
+	accountHandlers.accountService = service.GetAccountService()
+	return accountHandlers
 }
 
 type CreateAccountRequest struct {
@@ -36,9 +33,8 @@ func (accountHandlers *AccountHandlers) CreateAccountHandler(c *fiber.Ctx) error
 
 	accountService := accountHandlers.accountService
 	accountData := model.Account{Username: request.UserName, MoneyBalance: request.MoneyBalance}
-	createdAccount := accountService.SaveNewUser(accountData)
-
-	return c.SendString(fmt.Sprintf("Created account: %s.", createdAccount.ToString()))
+	createdAccount := accountService.SaveNewAccount(accountData)
+	return c.JSON(createdAccount)
 }
 
 func (accountHandlers *AccountHandlers) GetAccountHandler(c *fiber.Ctx) error {
@@ -53,7 +49,6 @@ func (accountHandlers *AccountHandlers) GetAccountHandler(c *fiber.Ctx) error {
 	}
 
 	accountService := accountHandlers.accountService
-	existingAccount := accountService.GetUserById(accountId)
-
-	return c.SendString(fmt.Sprintf("Found account: %s.", existingAccount.ToString()))
+	existingAccount := accountService.GetAccountById(accountId)
+	return c.JSON(existingAccount)
 }

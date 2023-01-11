@@ -6,8 +6,8 @@ import (
 )
 
 type LobbyRepository interface {
-	CreateLobby(account model.Lobby) (model.Lobby, error)
-	GetLobbyById(accountId int) model.Lobby
+	CreateLobby(account model.Lobby) (*model.Lobby, error)
+	GetLobbyById(accountId int) *model.Lobby
 	GetAllLobbies() model.Lobbies
 }
 
@@ -20,7 +20,7 @@ func GetLobbyService() *LobbyService {
 	return &LobbyService{lobbyRepository: lobbyRepository}
 }
 
-func (lobbyService *LobbyService) SaveNewLobby(lobbyDto model.Lobby) model.Lobby {
+func (lobbyService *LobbyService) SaveNewLobby(lobbyDto model.Lobby) *model.Lobby {
 	lobbyRepository := lobbyService.lobbyRepository
 	createdLobby, err := lobbyRepository.CreateLobby(lobbyDto)
 	if err != nil {
@@ -29,7 +29,7 @@ func (lobbyService *LobbyService) SaveNewLobby(lobbyDto model.Lobby) model.Lobby
 	return createdLobby
 }
 
-func (lobbyService *LobbyService) GetLobbyById(lobbyId int) model.Lobby {
+func (lobbyService *LobbyService) GetLobbyById(lobbyId int) *model.Lobby {
 	lobbyRepository := lobbyService.lobbyRepository
 	existingLobby := lobbyRepository.GetLobbyById(lobbyId)
 	return existingLobby

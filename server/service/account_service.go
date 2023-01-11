@@ -6,8 +6,10 @@ import (
 )
 
 type AccountRepository interface {
-	CreateAccount(account model.Account) (model.Account, error)
-	GetAccountById(accountId int) model.Account
+	CreateAccount(account model.Account) (*model.Account, error)
+	GetAccountById(accountId int) *model.Account
+	UpdateAccount(account *model.Account)
+	RemoveLobbyConnection(accountId int)
 }
 
 type AccountService struct {
@@ -19,7 +21,7 @@ func GetAccountService() *AccountService {
 	return &AccountService{accountRepository: accountRepository}
 }
 
-func (accountService *AccountService) SaveNewUser(accountDto model.Account) model.Account {
+func (accountService *AccountService) SaveNewAccount(accountDto model.Account) *model.Account {
 	accountRepository := accountService.accountRepository
 	createdAccount, err := accountRepository.CreateAccount(accountDto)
 	if err != nil {
@@ -28,8 +30,16 @@ func (accountService *AccountService) SaveNewUser(accountDto model.Account) mode
 	return createdAccount
 }
 
-func (accountService *AccountService) GetUserById(userId int) model.Account {
+func (accountService *AccountService) GetAccountById(userId int) *model.Account {
 	accountRepository := accountService.accountRepository
 	existingAccount := accountRepository.GetAccountById(userId)
 	return existingAccount
+}
+
+func (accountService *AccountService) UpdateAccount(account *model.Account) {
+	accountService.accountRepository.UpdateAccount(account)
+}
+
+func (accountService *AccountService) RemoveLobbyConnection(accountId int) {
+	accountService.accountRepository.RemoveLobbyConnection(accountId)
 }

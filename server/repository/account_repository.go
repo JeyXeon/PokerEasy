@@ -1,13 +1,15 @@
 package repository
 
 import (
+	"context"
 	"github.com/JeyXeon/poker-easy/config"
 	"github.com/JeyXeon/poker-easy/model"
-	"gorm.io/gorm"
+	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AccountRepository struct {
-	db *gorm.DB
+	db *pgxpool.Pool
 }
 
 func GetAccountRepository() *AccountRepository {
@@ -15,22 +17,37 @@ func GetAccountRepository() *AccountRepository {
 	return &AccountRepository{db: dbCon}
 }
 
-func (accountRepository *AccountRepository) CreateAccount(account model.Account) (model.Account, error) {
+func (accountRepository *AccountRepository) CreateAccount(account model.Account) (*model.Account, error) {
 	db := accountRepository.db
-	tx := db.Begin()
-	if err := tx.Create(&account).Error; err != nil {
-		tx.Rollback()
-		return model.Account{}, err
-	}
-	tx.Select("account_id", &account).Where("name = ?", account.Username)
-	tx.Commit()
 
-	return account, nil
+	row := db.QueryRow(
+		context.Background(),
+		`INSERT INTO account (account_user_name, money_balance) VALUES ($1, $2) RETURNING (account_id, account_user_name, money_balance);`,
+		account.Username, account.MoneyBalance)
+	var createdAccount model.Account
+	err := row.Scan(&createdAccount)
+
+	return &createdAccount, err
 }
 
-func (accountRepository *AccountRepository) GetAccountById(accountId int) model.Account {
-	account := model.Account{}
+func (accountRepository *AccountRepository) GetAccountById(accountId int) *model.Account {
 	db := accountRepository.db
-	db.First(&account, "account_id = ?", accountId)
-	return account
+
+	var account model.Account
+	pgxscan.Get(context.Background(), db, &account, `SELECT * FROM account WHERE account_id = $1;`, accountId)
+	return &account
+}
+
+func (accountRepository *AccountRepository) UpdateAccount(account *model.Account) {
+	accountRepository.db.QueryRow(
+		context.Background(),
+		"UPDATE account SET account_user_name = $1, money_balance = $2, connected_lobby_id = $3 WHERE account_id = $4;",
+		account.Username, account.MoneyBalance, account.ConnectedLobbyId, account.ID)
+}
+
+func (accountRepository *AccountRepository) RemoveLobbyConnection(accountId int) {
+	accountRepository.db.Query(
+		context.Background(),
+		"UPDATE account SET connected_lobby_id = null WHERE account_id = $1;",
+		accountId)
 }
