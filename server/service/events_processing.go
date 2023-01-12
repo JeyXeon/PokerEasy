@@ -9,26 +9,27 @@ import (
 )
 
 func (gameService *GameService) processPlayerConnection(event *dto.Event, connections *[]*websocket.Conn) {
+	accountName := event.Account.Username
+
 	*connections = append(*connections, event.Connection)
-	accountName := event.Connection.Query("accountName", "")
 	for _, connection := range *connections {
 		err := connection.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Player %s connected to lobby", accountName)))
 		if err != nil {
-			fmt.Println(err)
+			logrus.Error(err)
 		}
 	}
 }
 
 func (gameService *GameService) processPlayerDisconnection(event *dto.Event, connections *[]*websocket.Conn) {
-	accountName := event.Connection.Query("accountName", "")
-	deleteIdx := -1
+	accountName := event.Account.Username
+	var deleteIdx int
 	for i, connection := range *connections {
 		if connection == event.Connection {
 			deleteIdx = i
 		} else {
 			err := connection.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Player %s disconnected from lobby", accountName)))
 			if err != nil {
-				fmt.Println(err)
+				logrus.Error(err)
 			}
 		}
 	}
@@ -51,7 +52,7 @@ func (gameService *GameService) processGameStart(
 	for _, connection := range connections {
 		err := connection.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Game started by %s", accountName)))
 		if err != nil {
-			fmt.Println(err)
+			logrus.Error(err)
 		}
 	}
 }
@@ -61,10 +62,4 @@ func processGame(
 	gameState *dto.GameState,
 	connections []*websocket.Conn,
 ) {
-}
-
-func HandleError(conn *websocket.Conn, err error, message string) {
-	conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(message)))
-	logrus.WithError(err).Info(err.Error())
-	conn.Close()
 }

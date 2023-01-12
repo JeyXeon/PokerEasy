@@ -1,6 +1,9 @@
 package dto
 
-import "github.com/gofiber/websocket/v2"
+import (
+	"github.com/JeyXeon/poker-easy/model"
+	"github.com/gofiber/websocket/v2"
+)
 
 const (
 	StartGameEvent          = "START_GAME"
@@ -11,4 +14,5 @@ const (
 type Event struct {
 	Body       string
 	Connection *websocket.Conn
+	Account    *model.Account
 }

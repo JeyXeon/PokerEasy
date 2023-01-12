@@ -6,7 +6,7 @@ import (
 	"github.com/JeyXeon/poker-easy/dto"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/gofiber/websocket/v2"
-	"log"
+	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
@@ -53,17 +53,28 @@ func (gameService *GameService) ListenWebsocket(conn *websocket.Conn) {
 	lobbyEventPipesByLobbyIds := gameService.LobbyEventPipesByLobbyIds
 	connectedAccountIds := gameService.ConnectedAccountIds
 
-	lobbyId, err := strconv.Atoi(conn.Params("lobbyId", ""))
+	lobbyIdParam, err := GetPathParamFromConnection(conn, "lobbyId")
+	if err != nil {
+		HandleError(conn, err, "LobbyIdParam param is not present")
+		return
+	}
+	lobbyId, err := strconv.Atoi(lobbyIdParam)
 	if err != nil {
 		HandleError(conn, err, "Invalid lobbyId param")
 		return
 	}
 
-	accountId, err := strconv.Atoi(conn.Query("accountId", ""))
+	accountIdParam, err := GetQueryParamFromConnection(conn, "accountId")
+	if err != nil {
+		HandleError(conn, err, "AccountId param is not present")
+		return
+	}
+	accountId, err := strconv.Atoi(accountIdParam)
 	if err != nil {
 		HandleError(conn, err, "Invalid accountId param")
 		return
 	}
+
 	account, err := accountService.GetAccountById(accountId)
 	if err != nil {
 		HandleError(conn, err, fmt.Sprintf("Account with id %d doesn't exist", accountId))
@@ -86,6 +97,7 @@ func (gameService *GameService) ListenWebsocket(conn *websocket.Conn) {
 		event := &dto.Event{
 			Body:       string(messageContent),
 			Connection: conn,
+			Account:    account,
 		}
 
 		if event.Body == dto.StartGameEvent {
@@ -115,11 +127,12 @@ func (gameService *GameService) disconnectPlayer(account *model.Account, lobbyId
 	playerDisconnectedEvent := &dto.Event{
 		Body:       dto.PlayerDisconnectedEvent,
 		Connection: conn,
+		Account:    account,
 	}
 	lobbyEventPipesByLobbyIds[lobbyId].DisconnectedChannel <- playerDisconnectedEvent
 
 	if err := conn.Close(); err != nil {
-		log.Println(err)
+		logrus.Error(err)
 		return
 	}
 }
@@ -130,7 +143,7 @@ func (gameService *GameService) addActivePlayer(lobbyId int, account *model.Acco
 	connectedAccountIds := gameService.ConnectedAccountIds
 	connectedAccountsByLobbyIds := gameService.ConnectedAccountsByLobbyIds
 
-	account.ConnectedLobbyId = lobbyId
+	account.ConnectedLobbyId = &lobbyId
 	accountService.UpdateAccount(account)
 	connectedAccountsByLobbyIds[lobbyId] = append(connectedAccountsByLobbyIds[lobbyId], account)
 
@@ -144,6 +157,7 @@ func (gameService *GameService) addActivePlayer(lobbyId int, account *model.Acco
 	playerConnectedEvent := &dto.Event{
 		Body:       dto.PlayerConnectedEvent,
 		Connection: conn,
+		Account:    account,
 	}
 	lobbyEventPipesByLobbyIds[lobbyId].ConnectedChannel <- playerConnectedEvent
 }
