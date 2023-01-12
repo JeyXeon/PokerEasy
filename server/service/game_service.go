@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/dto"
 	"github.com/JeyXeon/poker-easy/model"
@@ -50,28 +51,30 @@ func (gameService *GameService) ListenWebsocket(conn *websocket.Conn) {
 	accountService := gameService.accountService
 
 	lobbyEventPipesByLobbyIds := gameService.LobbyEventPipesByLobbyIds
-	connectedAccountByLobbyIds := gameService.ConnectedAccountsByLobbyIds
 	connectedAccountIds := gameService.ConnectedAccountIds
 
 	lobbyId, err := strconv.Atoi(conn.Params("lobbyId", ""))
 	if err != nil {
+		HandleError(conn, err, "Invalid lobbyId param")
 		return
 	}
 
 	accountId, err := strconv.Atoi(conn.Query("accountId", ""))
 	if err != nil {
+		HandleError(conn, err, "Invalid accountId param")
 		return
 	}
-	account := accountService.GetAccountById(accountId)
-	account.ConnectedLobbyId = lobbyId
-	accountService.UpdateAccount(account)
-	connectedAccountByLobbyIds[lobbyId] = append(connectedAccountByLobbyIds[lobbyId], account)
+	account, err := accountService.GetAccountById(accountId)
+	if err != nil {
+		HandleError(conn, err, fmt.Sprintf("Account with id %d doesn't exist", accountId))
+		return
+	}
 
 	defer gameService.disconnectPlayer(account, lobbyId, conn)
 
 	_, accountConnected := connectedAccountIds[accountId]
 	if !accountConnected {
-		gameService.addActivePlayer(lobbyId, accountId, conn)
+		gameService.addActivePlayer(lobbyId, account, conn)
 	}
 
 	for {
@@ -121,20 +124,22 @@ func (gameService *GameService) disconnectPlayer(account *model.Account, lobbyId
 	}
 }
 
-func (gameService *GameService) addActivePlayer(lobbyId int, accountId int, conn *websocket.Conn) {
+func (gameService *GameService) addActivePlayer(lobbyId int, account *model.Account, conn *websocket.Conn) {
 	accountService := gameService.accountService
 	lobbyEventPipesByLobbyIds := gameService.LobbyEventPipesByLobbyIds
 	connectedAccountIds := gameService.ConnectedAccountIds
+	connectedAccountsByLobbyIds := gameService.ConnectedAccountsByLobbyIds
 
-	account := accountService.GetAccountById(accountId)
 	account.ConnectedLobbyId = lobbyId
+	accountService.UpdateAccount(account)
+	connectedAccountsByLobbyIds[lobbyId] = append(connectedAccountsByLobbyIds[lobbyId], account)
 
 	_, lobbyExists := lobbyEventPipesByLobbyIds[lobbyId]
 	if !lobbyExists {
 		gameService.startLobbyProcessing(lobbyId)
 	}
 
-	connectedAccountIds[accountId] = true
+	connectedAccountIds[account.ID] = true
 
 	playerConnectedEvent := &dto.Event{
 		Body:       dto.PlayerConnectedEvent,

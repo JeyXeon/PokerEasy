@@ -5,6 +5,7 @@ import (
 	"github.com/JeyXeon/poker-easy/dto"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/gofiber/websocket/v2"
+	"github.com/sirupsen/logrus"
 )
 
 func (gameService *GameService) processPlayerConnection(event *dto.Event, connections *[]*websocket.Conn) {
@@ -60,4 +61,10 @@ func processGame(
 	gameState *dto.GameState,
 	connections []*websocket.Conn,
 ) {
+}
+
+func HandleError(conn *websocket.Conn, err error, message string) {
+	conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(message)))
+	logrus.WithError(err).Info(err.Error())
+	conn.Close()
 }
