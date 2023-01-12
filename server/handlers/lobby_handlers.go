@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/JeyXeon/poker-easy/service"
@@ -40,38 +39,39 @@ func (lobbyHandlers *LobbyHandlers) WsUpgradeCheck(c *fiber.Ctx) error {
 func (lobbyHandlers *LobbyHandlers) CreateLobby(c *fiber.Ctx) error {
 	var request CreateLobbyRequest
 	if err := c.BodyParser(&request); err != nil {
-		return fmt.Errorf("body parser: %w", err)
+		return SendResponse(c, nil, err, fiber.StatusBadRequest)
 	}
 	creatorId := request.CreatorId
 	lobby := model.Lobby{LobbyName: request.LobbyName, MaxPlayers: request.MaxPlayers, CreatorId: creatorId}
 
 	lobbyService := lobbyHandlers.lobbyService
-	createdLobby := lobbyService.SaveNewLobby(lobby)
-	return c.JSON(createdLobby)
+	createdLobby, err := lobbyService.SaveNewLobby(lobby)
+
+	return SendResponse(c, createdLobby, err, fiber.StatusBadRequest)
 }
 
 func (lobbyHandlers *LobbyHandlers) GetLobbyById(c *fiber.Ctx) error {
 	lobbyIdParam := c.Params("lobbyId", "")
 	if lobbyIdParam == "" {
-		return c.SendStatus(http.StatusUnprocessableEntity)
+		return c.SendStatus(http.StatusBadRequest)
 	}
 
 	lobbyId, err := strconv.Atoi(lobbyIdParam)
 	if err != nil || lobbyId < 0 {
-		return fmt.Errorf("invalid account id: %w", err)
+		return SendResponse(c, nil, err, fiber.StatusUnprocessableEntity)
 	}
 
 	lobbyService := lobbyHandlers.lobbyService
-	existingLobby := lobbyService.GetLobbyById(lobbyId)
+	existingLobby, err := lobbyService.GetLobbyById(lobbyId)
 
-	return c.JSON(existingLobby)
+	return SendResponse(c, existingLobby, err, fiber.StatusNotFound)
 }
 
 func (lobbyHandlers *LobbyHandlers) GetAllLobbies(c *fiber.Ctx) error {
 	lobbyService := lobbyHandlers.lobbyService
-	allLobbies := lobbyService.GetAllLobbies()
+	allLobbies, err := lobbyService.GetAllLobbies()
 
-	return c.JSON(allLobbies)
+	return SendResponse(c, allLobbies, err, fiber.StatusInternalServerError)
 }
 
 func (lobbyHandlers *LobbyHandlers) ConnectToLobby(c *websocket.Conn) {

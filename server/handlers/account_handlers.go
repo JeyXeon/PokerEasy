@@ -1,12 +1,10 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/JeyXeon/poker-easy/service"
 	"github.com/gofiber/fiber/v2"
-	"net/http"
 	"strconv"
 )
 
@@ -28,27 +26,29 @@ type CreateAccountRequest struct {
 func (accountHandlers *AccountHandlers) CreateAccountHandler(c *fiber.Ctx) error {
 	var request CreateAccountRequest
 	if err := c.BodyParser(&request); err != nil {
-		return fmt.Errorf("body parser: %w", err)
+		return SendResponse(c, nil, err, fiber.StatusBadRequest)
 	}
 
 	accountService := accountHandlers.accountService
 	accountData := model.Account{Username: request.UserName, MoneyBalance: request.MoneyBalance}
-	createdAccount := accountService.SaveNewAccount(accountData)
-	return c.JSON(createdAccount)
+	createdAccount, err := accountService.SaveNewAccount(accountData)
+
+	return SendResponse(c, createdAccount, err, fiber.StatusBadRequest)
 }
 
 func (accountHandlers *AccountHandlers) GetAccountHandler(c *fiber.Ctx) error {
 	accountIdParam := c.Params("accountId", "")
 	if accountIdParam == "" {
-		return c.SendStatus(http.StatusUnprocessableEntity)
+		return c.SendStatus(fiber.StatusUnprocessableEntity)
 	}
 
 	accountId, err := strconv.Atoi(accountIdParam)
 	if err != nil || accountId < 0 {
-		return fmt.Errorf("invalid account id: %w", err)
+		return SendResponse(c, nil, err, fiber.StatusUnprocessableEntity)
 	}
 
 	accountService := accountHandlers.accountService
-	existingAccount := accountService.GetAccountById(accountId)
-	return c.JSON(existingAccount)
+	existingAccount, err := accountService.GetAccountById(accountId)
+
+	return SendResponse(c, existingAccount, err, fiber.StatusNotFound)
 }
