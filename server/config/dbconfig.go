@@ -2,8 +2,8 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sirupsen/logrus"
 	"os"
 )
 
@@ -14,7 +14,7 @@ const (
 func GetDbConnection() *pgxpool.Pool {
 	db, err := pgxpool.New(context.Background(), dbURL)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		logrus.WithError(err).Info("Unable to connect to database: %s\n", err.Error())
 		os.Exit(1)
 	}
 

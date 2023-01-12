@@ -14,28 +14,32 @@ type AccountRepository struct {
 
 func GetAccountRepository() *AccountRepository {
 	dbCon := config.GetDbConnection()
-	return &AccountRepository{db: dbCon}
+	accountRepository := new(AccountRepository)
+	accountRepository.db = dbCon
+	return accountRepository
 }
 
 func (accountRepository *AccountRepository) CreateAccount(account model.Account) (*model.Account, error) {
 	db := accountRepository.db
 
+	var err error
 	row := db.QueryRow(
 		context.Background(),
 		`INSERT INTO account (account_user_name, money_balance) VALUES ($1, $2) RETURNING (account_id, account_user_name, money_balance);`,
 		account.Username, account.MoneyBalance)
+
 	var createdAccount model.Account
-	err := row.Scan(&createdAccount)
+	err = row.Scan(&createdAccount)
 
 	return &createdAccount, err
 }
 
-func (accountRepository *AccountRepository) GetAccountById(accountId int) *model.Account {
+func (accountRepository *AccountRepository) GetAccountById(accountId int) (*model.Account, error) {
 	db := accountRepository.db
 
 	var account model.Account
-	pgxscan.Get(context.Background(), db, &account, `SELECT * FROM account WHERE account_id = $1;`, accountId)
-	return &account
+	err := pgxscan.Get(context.Background(), db, &account, `SELECT * FROM account WHERE account_id = $1;`, accountId)
+	return &account, err
 }
 
 func (accountRepository *AccountRepository) UpdateAccount(account *model.Account) {
@@ -46,7 +50,7 @@ func (accountRepository *AccountRepository) UpdateAccount(account *model.Account
 }
 
 func (accountRepository *AccountRepository) RemoveLobbyConnection(accountId int) {
-	accountRepository.db.Query(
+	accountRepository.db.QueryRow(
 		context.Background(),
 		"UPDATE account SET connected_lobby_id = null WHERE account_id = $1;",
 		accountId)

@@ -14,7 +14,10 @@ type LobbyRepository struct {
 
 func GetLobbyRepository() *LobbyRepository {
 	dbCon := config.GetDbConnection()
-	return &LobbyRepository{db: dbCon}
+
+	lobbyRepository := new(LobbyRepository)
+	lobbyRepository.db = dbCon
+	return lobbyRepository
 }
 
 func (lobbyRepository *LobbyRepository) CreateLobby(lobby model.Lobby) (*model.Lobby, error) {
@@ -30,18 +33,18 @@ func (lobbyRepository *LobbyRepository) CreateLobby(lobby model.Lobby) (*model.L
 	return &createdLobby, err
 }
 
-func (lobbyRepository *LobbyRepository) GetLobbyById(lobbyId int) *model.Lobby {
+func (lobbyRepository *LobbyRepository) GetLobbyById(lobbyId int) (*model.Lobby, error) {
 	db := lobbyRepository.db
 
 	var lobby model.Lobby
-	pgxscan.Get(context.Background(), db, &lobby, `SELECT * FROM lobby WHERE players_amount = $1;`, lobbyId)
-	return &lobby
+	err := pgxscan.Get(context.Background(), db, &lobby, `SELECT * FROM lobby WHERE players_amount = $1;`, lobbyId)
+	return &lobby, err
 }
 
-func (lobbyRepository *LobbyRepository) GetAllLobbies() model.Lobbies {
+func (lobbyRepository *LobbyRepository) GetAllLobbies() (model.Lobbies, error) {
 	db := lobbyRepository.db
 
 	var lobbies []model.Lobby
-	pgxscan.Select(context.Background(), db, &lobbies, "SELECT * FROM lobby")
-	return lobbies
+	err := pgxscan.Select(context.Background(), db, &lobbies, "SELECT * FROM lobby")
+	return lobbies, err
 }
