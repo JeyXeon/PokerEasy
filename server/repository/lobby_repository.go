@@ -14,7 +14,10 @@ type LobbyRepository struct {
 
 func GetLobbyRepository() *LobbyRepository {
 	dbCon := config.GetDbConnection()
-	return &LobbyRepository{db: dbCon}
+
+	lobbyRepository := new(LobbyRepository)
+	lobbyRepository.db = dbCon
+	return lobbyRepository
 }
 
 func (lobbyRepository *LobbyRepository) CreateLobby(lobby model.Lobby) (*model.Lobby, error) {
@@ -22,7 +25,7 @@ func (lobbyRepository *LobbyRepository) CreateLobby(lobby model.Lobby) (*model.L
 
 	row := db.QueryRow(
 		context.Background(),
-		`INSERT INTO lobby(lobby_name, players_amount, creator_id) VALUES ($1, $2, $3) RETURNING (lobby_id, lobby_name, players_amount, creator_id)`,
+		insertLobbyQuery,
 		lobby.LobbyName, lobby.MaxPlayers, lobby.CreatorId)
 	var createdLobby model.Lobby
 	err := row.Scan(&createdLobby)
@@ -30,18 +33,18 @@ func (lobbyRepository *LobbyRepository) CreateLobby(lobby model.Lobby) (*model.L
 	return &createdLobby, err
 }
 
-func (lobbyRepository *LobbyRepository) GetLobbyById(lobbyId int) *model.Lobby {
+func (lobbyRepository *LobbyRepository) GetLobbyById(lobbyId int) (*model.Lobby, error) {
 	db := lobbyRepository.db
 
 	var lobby model.Lobby
-	pgxscan.Get(context.Background(), db, &lobby, `SELECT * FROM lobby WHERE players_amount = $1;`, lobbyId)
-	return &lobby
+	err := pgxscan.Get(context.Background(), db, &lobby, getLobbyByIdQuery, lobbyId)
+	return &lobby, err
 }
 
-func (lobbyRepository *LobbyRepository) GetAllLobbies() model.Lobbies {
+func (lobbyRepository *LobbyRepository) GetAllLobbies() (model.Lobbies, error) {
 	db := lobbyRepository.db
 
 	var lobbies []model.Lobby
-	pgxscan.Select(context.Background(), db, &lobbies, "SELECT * FROM lobby")
-	return lobbies
+	err := pgxscan.Select(context.Background(), db, &lobbies, getAllLobbiesQuery)
+	return lobbies, err
 }

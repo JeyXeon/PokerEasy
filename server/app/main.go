@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/JeyXeon/poker-easy/handlers"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/websocket/v2"
 	"github.com/sirupsen/logrus"
 )
@@ -12,6 +13,7 @@ func main() {
 	lobbyHandlers := handlers.GetLobbyHandlers()
 
 	webApp := fiber.New()
+	webApp.Use(recover.New())
 
 	account := webApp.Group("/account")
 	account.Post("", accountHandlers.CreateAccountHandler)

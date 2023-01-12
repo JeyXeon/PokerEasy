@@ -1,42 +1,38 @@
 package service
 
 import (
+	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/JeyXeon/poker-easy/repository"
 )
 
-type LobbyRepository interface {
-	CreateLobby(account model.Lobby) (*model.Lobby, error)
-	GetLobbyById(accountId int) *model.Lobby
-	GetAllLobbies() model.Lobbies
-}
-
 type LobbyService struct {
-	lobbyRepository LobbyRepository
+	lobbyRepository common.LobbyRepository
 }
 
 func GetLobbyService() *LobbyService {
 	lobbyRepository := repository.GetLobbyRepository()
-	return &LobbyService{lobbyRepository: lobbyRepository}
+
+	lobbyService := new(LobbyService)
+	lobbyService.lobbyRepository = lobbyRepository
+	return lobbyService
 }
 
-func (lobbyService *LobbyService) SaveNewLobby(lobbyDto model.Lobby) *model.Lobby {
+func (lobbyService *LobbyService) SaveNewLobby(lobbyDto model.Lobby) (*model.Lobby, error) {
 	lobbyRepository := lobbyService.lobbyRepository
 	createdLobby, err := lobbyRepository.CreateLobby(lobbyDto)
-	if err != nil {
 
-	}
-	return createdLobby
+	return createdLobby, err
 }
 
-func (lobbyService *LobbyService) GetLobbyById(lobbyId int) *model.Lobby {
+func (lobbyService *LobbyService) GetLobbyById(lobbyId int) (*model.Lobby, error) {
 	lobbyRepository := lobbyService.lobbyRepository
-	existingLobby := lobbyRepository.GetLobbyById(lobbyId)
-	return existingLobby
+	existingLobby, err := lobbyRepository.GetLobbyById(lobbyId)
+	return existingLobby, err
 }
 
-func (lobbyService *LobbyService) GetAllLobbies() model.Lobbies {
+func (lobbyService *LobbyService) GetAllLobbies() (model.Lobbies, error) {
 	lobbyRepository := lobbyService.lobbyRepository
-	existingLobbies := lobbyRepository.GetAllLobbies()
-	return existingLobbies
+	existingLobbies, err := lobbyRepository.GetAllLobbies()
+	return existingLobbies, err
 }

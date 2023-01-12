@@ -1,11 +1,12 @@
 package service
 
 import (
+	"fmt"
 	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/dto"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/gofiber/websocket/v2"
-	"log"
+	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
@@ -25,9 +26,9 @@ func NewLobbyChannels() *LobbyChannels {
 }
 
 type GameService struct {
-	LobbyEventPipesByLobbyIds   map[int]*LobbyChannels
-	ConnectedAccountsByLobbyIds map[int][]*model.Account
-	ConnectedAccountIds         map[int]bool
+	LobbyEventPipesByLobbyIds   *common.RWLockerMap[*LobbyChannels]
+	ConnectedAccountsByLobbyIds *common.RWLockerMap[[]*model.Account]
+	ConnectedAccountIds         *common.RWLockerMap[bool]
 
 	accountService common.AccountService
 	lobbyService   common.LobbyService
@@ -36,9 +37,9 @@ type GameService struct {
 func GetGameService() *GameService {
 	gameService := new(GameService)
 
-	gameService.LobbyEventPipesByLobbyIds = make(map[int]*LobbyChannels)
-	gameService.ConnectedAccountIds = make(map[int]bool)
-	gameService.ConnectedAccountsByLobbyIds = make(map[int][]*model.Account)
+	gameService.LobbyEventPipesByLobbyIds = common.NewRWLockerMap(make(map[int]*LobbyChannels))
+	gameService.ConnectedAccountsByLobbyIds = common.NewRWLockerMap(make(map[int][]*model.Account))
+	gameService.ConnectedAccountIds = common.NewRWLockerMap(make(map[int]bool))
 
 	gameService.accountService = GetAccountService()
 	gameService.lobbyService = GetLobbyService()
@@ -50,28 +51,41 @@ func (gameService *GameService) ListenWebsocket(conn *websocket.Conn) {
 	accountService := gameService.accountService
 
 	lobbyEventPipesByLobbyIds := gameService.LobbyEventPipesByLobbyIds
-	connectedAccountByLobbyIds := gameService.ConnectedAccountsByLobbyIds
 	connectedAccountIds := gameService.ConnectedAccountIds
 
-	lobbyId, err := strconv.Atoi(conn.Params("lobbyId", ""))
+	lobbyIdParam, err := GetPathParamFromConnection(conn, "lobbyId")
 	if err != nil {
+		HandleError(conn, err, "LobbyIdParam param is not present")
+		return
+	}
+	lobbyId, err := strconv.Atoi(lobbyIdParam)
+	if err != nil {
+		HandleError(conn, err, "Invalid lobbyId param")
 		return
 	}
 
-	accountId, err := strconv.Atoi(conn.Query("accountId", ""))
+	accountIdParam, err := GetQueryParamFromConnection(conn, "accountId")
 	if err != nil {
+		HandleError(conn, err, "AccountId param is not present")
 		return
 	}
-	account := accountService.GetAccountById(accountId)
-	account.ConnectedLobbyId = lobbyId
-	accountService.UpdateAccount(account)
-	connectedAccountByLobbyIds[lobbyId] = append(connectedAccountByLobbyIds[lobbyId], account)
+	accountId, err := strconv.Atoi(accountIdParam)
+	if err != nil {
+		HandleError(conn, err, "Invalid accountId param")
+		return
+	}
+
+	account, err := accountService.GetAccountById(accountId)
+	if err != nil {
+		HandleError(conn, err, fmt.Sprintf("Account with id %d doesn't exist", accountId))
+		return
+	}
 
 	defer gameService.disconnectPlayer(account, lobbyId, conn)
 
-	_, accountConnected := connectedAccountIds[accountId]
+	_, accountConnected := connectedAccountIds.Load(accountId)
 	if !accountConnected {
-		gameService.addActivePlayer(lobbyId, accountId, conn)
+		gameService.addActivePlayer(lobbyId, account, conn)
 	}
 
 	for {
@@ -83,10 +97,12 @@ func (gameService *GameService) ListenWebsocket(conn *websocket.Conn) {
 		event := &dto.Event{
 			Body:       string(messageContent),
 			Connection: conn,
+			Account:    account,
 		}
 
 		if event.Body == dto.StartGameEvent {
-			lobbyEventPipesByLobbyIds[lobbyId].GameStartChannel <- event
+			lobbyEventPipes, _ := lobbyEventPipesByLobbyIds.Load(lobbyId)
+			lobbyEventPipes.GameStartChannel <- event
 		}
 	}
 }
@@ -96,9 +112,9 @@ func (gameService *GameService) disconnectPlayer(account *model.Account, lobbyId
 	lobbyEventPipesByLobbyIds := gameService.LobbyEventPipesByLobbyIds
 	connectedAccountsByLobbyIds := gameService.ConnectedAccountsByLobbyIds
 
-	delete(connectedAccountIds, account.ID)
+	connectedAccountIds.Delete(account.ID)
 
-	connectedAccounts := connectedAccountsByLobbyIds[lobbyId]
+	connectedAccounts, _ := connectedAccountsByLobbyIds.Load(lobbyId)
 	var deleteIdx int
 	for i, connectedAccount := range connectedAccounts {
 		if connectedAccount.ID == account.ID {
@@ -112,35 +128,42 @@ func (gameService *GameService) disconnectPlayer(account *model.Account, lobbyId
 	playerDisconnectedEvent := &dto.Event{
 		Body:       dto.PlayerDisconnectedEvent,
 		Connection: conn,
+		Account:    account,
 	}
-	lobbyEventPipesByLobbyIds[lobbyId].DisconnectedChannel <- playerDisconnectedEvent
+	lobbyEventPipes, _ := lobbyEventPipesByLobbyIds.Load(lobbyId)
+	lobbyEventPipes.DisconnectedChannel <- playerDisconnectedEvent
 
 	if err := conn.Close(); err != nil {
-		log.Println(err)
+		logrus.Error(err)
 		return
 	}
 }
 
-func (gameService *GameService) addActivePlayer(lobbyId int, accountId int, conn *websocket.Conn) {
+func (gameService *GameService) addActivePlayer(lobbyId int, account *model.Account, conn *websocket.Conn) {
 	accountService := gameService.accountService
 	lobbyEventPipesByLobbyIds := gameService.LobbyEventPipesByLobbyIds
 	connectedAccountIds := gameService.ConnectedAccountIds
+	connectedAccountsByLobbyIds := gameService.ConnectedAccountsByLobbyIds
 
-	account := accountService.GetAccountById(accountId)
-	account.ConnectedLobbyId = lobbyId
+	account.ConnectedLobbyId = &lobbyId
+	accountService.UpdateAccount(account)
+	connectedAccounts, _ := connectedAccountsByLobbyIds.Load(lobbyId)
+	connectedAccountsByLobbyIds.Store(lobbyId, append(connectedAccounts, account))
 
-	_, lobbyExists := lobbyEventPipesByLobbyIds[lobbyId]
+	_, lobbyExists := lobbyEventPipesByLobbyIds.Load(lobbyId)
 	if !lobbyExists {
 		gameService.startLobbyProcessing(lobbyId)
 	}
 
-	connectedAccountIds[accountId] = true
+	connectedAccountIds.Store(account.ID, true)
 
 	playerConnectedEvent := &dto.Event{
 		Body:       dto.PlayerConnectedEvent,
 		Connection: conn,
+		Account:    account,
 	}
-	lobbyEventPipesByLobbyIds[lobbyId].ConnectedChannel <- playerConnectedEvent
+	lobbyEventPipes, _ := lobbyEventPipesByLobbyIds.Load(lobbyId)
+	lobbyEventPipes.ConnectedChannel <- playerConnectedEvent
 }
 
 func (gameService *GameService) startLobbyProcessing(lobbyId int) {
@@ -148,7 +171,7 @@ func (gameService *GameService) startLobbyProcessing(lobbyId int) {
 	lobbyEventPipesByLobbyIds := gameService.LobbyEventPipesByLobbyIds
 
 	lobbyChannels := NewLobbyChannels()
-	lobbyEventPipesByLobbyIds[lobbyId] = lobbyChannels
+	lobbyEventPipesByLobbyIds.Store(lobbyId, lobbyChannels)
 
 	go gameService.ProcessLobby(lobbyId, lobbyChannels)
 }
@@ -167,14 +190,14 @@ func (gameService *GameService) ProcessLobby(lobbyId int, lobbyChannels *LobbyCh
 
 		case event := <-disconnectedChannel:
 			if len(connections) == 1 {
-				delete(gameService.LobbyEventPipesByLobbyIds, lobbyId)
+				gameService.LobbyEventPipesByLobbyIds.Delete(lobbyId)
 				break
 			} else {
 				gameService.processPlayerDisconnection(event, &connections)
 			}
 
 		case event := <-gameStartChannel:
-			accounts := gameService.ConnectedAccountsByLobbyIds[lobbyId]
+			accounts, _ := gameService.ConnectedAccountsByLobbyIds.Load(lobbyId)
 			gameService.processGameStart(event, lobbyChannels, connections, accounts)
 		}
 	}
