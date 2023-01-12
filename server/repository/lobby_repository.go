@@ -25,7 +25,7 @@ func (lobbyRepository *LobbyRepository) CreateLobby(lobby model.Lobby) (*model.L
 
 	row := db.QueryRow(
 		context.Background(),
-		`INSERT INTO lobby(lobby_name, players_amount, creator_id) VALUES ($1, $2, $3) RETURNING (lobby_id, lobby_name, players_amount, creator_id)`,
+		insertLobbyQuery,
 		lobby.LobbyName, lobby.MaxPlayers, lobby.CreatorId)
 	var createdLobby model.Lobby
 	err := row.Scan(&createdLobby)
@@ -37,7 +37,7 @@ func (lobbyRepository *LobbyRepository) GetLobbyById(lobbyId int) (*model.Lobby,
 	db := lobbyRepository.db
 
 	var lobby model.Lobby
-	err := pgxscan.Get(context.Background(), db, &lobby, `SELECT * FROM lobby WHERE players_amount = $1;`, lobbyId)
+	err := pgxscan.Get(context.Background(), db, &lobby, getLobbyByIdQuery, lobbyId)
 	return &lobby, err
 }
 
@@ -45,6 +45,6 @@ func (lobbyRepository *LobbyRepository) GetAllLobbies() (model.Lobbies, error) {
 	db := lobbyRepository.db
 
 	var lobbies []model.Lobby
-	err := pgxscan.Select(context.Background(), db, &lobbies, "SELECT * FROM lobby")
+	err := pgxscan.Select(context.Background(), db, &lobbies, getAllLobbiesQuery)
 	return lobbies, err
 }

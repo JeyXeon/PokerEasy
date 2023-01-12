@@ -25,7 +25,7 @@ func (accountRepository *AccountRepository) CreateAccount(account model.Account)
 	var err error
 	row := db.QueryRow(
 		context.Background(),
-		`INSERT INTO account (account_user_name, money_balance) VALUES ($1, $2) RETURNING (account_id, account_user_name, money_balance);`,
+		insertAccountQuery,
 		account.Username, account.MoneyBalance)
 
 	var createdAccount model.Account
@@ -38,20 +38,20 @@ func (accountRepository *AccountRepository) GetAccountById(accountId int) (*mode
 	db := accountRepository.db
 
 	var account model.Account
-	err := pgxscan.Get(context.Background(), db, &account, `SELECT * FROM account WHERE account_id = $1;`, accountId)
+	err := pgxscan.Get(context.Background(), db, &account, selectAccountByIdQuery, accountId)
 	return &account, err
 }
 
 func (accountRepository *AccountRepository) UpdateAccount(account *model.Account) {
 	accountRepository.db.QueryRow(
 		context.Background(),
-		"UPDATE account SET account_user_name = $1, money_balance = $2, connected_lobby_id = $3 WHERE account_id = $4;",
+		updateAccountQuery,
 		account.Username, account.MoneyBalance, account.ConnectedLobbyId, account.ID)
 }
 
 func (accountRepository *AccountRepository) RemoveLobbyConnection(accountId int) {
 	accountRepository.db.QueryRow(
 		context.Background(),
-		"UPDATE account SET connected_lobby_id = null WHERE account_id = $1;",
+		removeLobbyConnectionFromAccountQuery,
 		accountId)
 }
