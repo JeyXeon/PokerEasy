@@ -25,5 +25,5 @@ func main() {
 	lobby.Get("/:lobbyId", lobbyHandlers.GetLobbyById)
 	lobby.Get("/:lobbyId/connect", websocket.New(lobbyHandlers.ConnectToLobby))
 
-	logrus.Fatal(webApp.Listen(":80"))
+	logrus.Fatal(webApp.Listen(":8000"))
 }

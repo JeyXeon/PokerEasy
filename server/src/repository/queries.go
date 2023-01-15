@@ -19,7 +19,7 @@ const (
 						ON CONFLICT (lobby_name) DO NOTHING
 						RETURNING (lobby_id, lobby_name, players_amount, creator_id)`
 
-	getLobbyByIdQuery = `SELECT * FROM lobby WHERE players_amount = $1;`
+	getLobbyByIdQuery = `SELECT * FROM lobby WHERE lobby_id = $1;`
 
 	getAllLobbiesQuery = `SELECT * FROM lobby`
 )

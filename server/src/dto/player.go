@@ -1,6 +1,8 @@
 package dto
 
-import "github.com/JeyXeon/poker-easy/model"
+import (
+	"github.com/JeyXeon/poker-easy/model"
+)
 
 type Player struct {
 	AccountId int
