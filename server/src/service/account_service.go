@@ -3,16 +3,16 @@ package service
 import (
 	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/model"
-	"github.com/JeyXeon/poker-easy/repository"
 )
 
 type AccountService struct {
 	accountRepository common.AccountRepository
 }
 
-func GetAccountService() *AccountService {
-	accountRepository := repository.GetAccountRepository()
-	return &AccountService{accountRepository: accountRepository}
+func GetAccountService(accountRepository common.AccountRepository) *AccountService {
+	accountService := new(AccountService)
+	accountService.accountRepository = accountRepository
+	return accountService
 }
 
 func (accountService *AccountService) SaveNewAccount(accountDto model.Account) (*model.Account, error) {

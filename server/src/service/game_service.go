@@ -34,15 +34,15 @@ type GameService struct {
 	lobbyService   common.LobbyService
 }
 
-func GetGameService() *GameService {
+func GetGameService(accountService common.AccountService, lobbyService common.LobbyService) *GameService {
 	gameService := new(GameService)
 
 	gameService.LobbyEventPipesByLobbyIds = common.NewRWLockerMap(make(map[int]*LobbyChannels))
 	gameService.ConnectedAccountsByLobbyIds = common.NewRWLockerMap(make(map[int][]*model.Account))
 	gameService.ConnectedAccountIds = common.NewRWLockerMap(make(map[int]bool))
 
-	gameService.accountService = GetAccountService()
-	gameService.lobbyService = GetLobbyService()
+	gameService.accountService = accountService
+	gameService.lobbyService = lobbyService
 
 	return gameService
 }

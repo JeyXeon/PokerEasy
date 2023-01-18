@@ -3,7 +3,6 @@ package handlers
 import (
 	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/model"
-	"github.com/JeyXeon/poker-easy/service"
 	"github.com/gofiber/fiber/v2"
 	"strconv"
 )
@@ -12,9 +11,9 @@ type AccountHandlers struct {
 	accountService common.AccountService
 }
 
-func GetAccountHandlers() *AccountHandlers {
+func GetAccountHandlers(accountService common.AccountService) *AccountHandlers {
 	accountHandlers := new(AccountHandlers)
-	accountHandlers.accountService = service.GetAccountService()
+	accountHandlers.accountService = accountService
 	return accountHandlers
 }
 

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"github.com/JeyXeon/poker-easy/config"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,9 +11,7 @@ type LobbyRepository struct {
 	db *pgxpool.Pool
 }
 
-func GetLobbyRepository() *LobbyRepository {
-	dbCon := config.GetDbConnection()
-
+func GetLobbyRepository(dbCon *pgxpool.Pool) *LobbyRepository {
 	lobbyRepository := new(LobbyRepository)
 	lobbyRepository.db = dbCon
 	return lobbyRepository

@@ -3,7 +3,6 @@ package handlers
 import (
 	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/model"
-	"github.com/JeyXeon/poker-easy/service"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 	"net/http"
@@ -15,10 +14,10 @@ type LobbyHandlers struct {
 	gameService  common.GameService
 }
 
-func GetLobbyHandlers() *LobbyHandlers {
+func GetLobbyHandlers(lobbyService common.LobbyService, gameService common.GameService) *LobbyHandlers {
 	lobbyHandlers := new(LobbyHandlers)
-	lobbyHandlers.lobbyService = service.GetLobbyService()
-	lobbyHandlers.gameService = service.GetGameService()
+	lobbyHandlers.lobbyService = lobbyService
+	lobbyHandlers.gameService = gameService
 	return lobbyHandlers
 }
 

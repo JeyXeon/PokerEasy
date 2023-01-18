@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"github.com/JeyXeon/poker-easy/config"
 	"github.com/JeyXeon/poker-easy/model"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,8 +11,7 @@ type AccountRepository struct {
 	db *pgxpool.Pool
 }
 
-func GetAccountRepository() *AccountRepository {
-	dbCon := config.GetDbConnection()
+func GetAccountRepository(dbCon *pgxpool.Pool) *AccountRepository {
 	accountRepository := new(AccountRepository)
 	accountRepository.db = dbCon
 	return accountRepository

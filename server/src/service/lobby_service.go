@@ -3,16 +3,13 @@ package service
 import (
 	"github.com/JeyXeon/poker-easy/common"
 	"github.com/JeyXeon/poker-easy/model"
-	"github.com/JeyXeon/poker-easy/repository"
 )
 
 type LobbyService struct {
 	lobbyRepository common.LobbyRepository
 }
 
-func GetLobbyService() *LobbyService {
-	lobbyRepository := repository.GetLobbyRepository()
-
+func GetLobbyService(lobbyRepository common.LobbyRepository) *LobbyService {
 	lobbyService := new(LobbyService)
 	lobbyService.lobbyRepository = lobbyRepository
 	return lobbyService
