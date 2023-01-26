@@ -1,23 +1,19 @@
 package dto
 
-import (
-	"github.com/JeyXeon/poker-easy/model"
-)
-
 type GameState struct {
-	CurrentRound int
-	Players      []Player
-	Deck         []PlayingCard
-	CardsOnTable []PlayingCard
-	CurrentTurn  int
-	CurrentBet   int64
-	Bank         int64
+	CurrentRound    int
+	PlayersByPlaces map[int]*Player
+	Deck            []PlayingCard
+	CardsOnTable    []PlayingCard
+	CurrentTurn     int
+	CurrentBet      int64
+	Bank            int64
 }
 
-func NewGameState(accounts []*model.Account) *GameState {
+func NewGameState(playersByPlaces map[int]*Player) *GameState {
 	gameState := new(GameState)
 	gameState.CurrentRound = 0
-	gameState.Players = AccountsToPlayers(accounts)
+	gameState.PlayersByPlaces = playersByPlaces
 	gameState.Deck = AvailableCards
 	gameState.CardsOnTable = make([]PlayingCard, 5)
 	gameState.CurrentTurn = 0

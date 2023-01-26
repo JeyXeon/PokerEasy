@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/JeyXeon/poker-easy/config"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/websocket/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sirupsen/logrus"
@@ -55,6 +54,5 @@ func (application *Application) configureRoutes() {
 
 func (application *Application) startWebApp() {
 	webApp := application.fiberApp
-	webApp.Use(recover.New())
 	logrus.Fatal(webApp.Listen(":8000"))
 }

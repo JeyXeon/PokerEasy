@@ -5,7 +5,7 @@ type Lobby struct {
 	LobbyName  string `json:"lobbyName" db:"lobby_name"`
 	MaxPlayers int    `json:"maxPlayers" db:"players_amount"`
 	CreatorId  int    `json:"creatorId" db:"creator_id"`
-	Players    []Account
+	players    []Account
 }
 
 type Lobbies []Lobby

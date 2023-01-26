@@ -5,25 +5,18 @@ import (
 )
 
 type Player struct {
-	AccountId int
-	Name      string
-	Hand      []PlayingCard
-	Balance   int64
-	Bet       int64
+	ID           int    `json:"accountId"`
+	Username     string `json:"username"`
+	MoneyBalance int64  `json:"moneyBalance"`
+	IsReady      bool   `json:"isReady"`
 }
 
-func AccountsToPlayers(accounts []*model.Account) []Player {
-	result := make([]Player, len(accounts))
+func AccountToPlayer(account *model.Account) *Player {
+	player := new(Player)
+	player.ID = account.ID
+	player.Username = account.Username
+	player.MoneyBalance = account.MoneyBalance
+	player.IsReady = false
 
-	for _, account := range accounts {
-		result = append(result, Player{
-			AccountId: account.ID,
-			Name:      account.Username,
-			Hand:      make([]PlayingCard, 2),
-			Balance:   account.MoneyBalance,
-			Bet:       0,
-		})
-	}
-
-	return result
+	return player
 }
