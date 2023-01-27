@@ -213,7 +213,7 @@ func (gameService *GameService) ProcessLobby(lobby *model.Lobby, lobbyChannels *
 		case event := <-readyStateChannel:
 			allReady := gameService.processReadyStateChanging(event, lobbyState, &connections)
 			if allReady {
-				gameService.processGameStart(lobbyChannels, connections, lobbyState.ConnectedPlayersByPlaces)
+				gameService.processGameStart(lobbyChannels, connections, lobbyState)
 			}
 		}
 	}

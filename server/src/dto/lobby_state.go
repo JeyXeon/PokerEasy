@@ -9,12 +9,14 @@ type LobbyState struct {
 	Lobby                      *model.Lobby `json:"lobby"`
 	places                     []int
 	ConnectedPlayersByPlaces   map[int]*Player `json:"playersByPlaces"`
-	placesByConnectedPlayerIds map[int]int
+	PlacesByConnectedPlayerIds map[int]int
+	GameState                  *GameState
 }
 
 func NewLobbyState(lobby *model.Lobby) *LobbyState {
 	lobbyState := new(LobbyState)
 	lobbyState.Lobby = lobby
+	lobbyState.GameState = nil
 
 	maxPlayersAmount := lobby.MaxPlayers
 
@@ -28,7 +30,7 @@ func NewLobbyState(lobby *model.Lobby) *LobbyState {
 		lobbyState.ConnectedPlayersByPlaces[place] = nil
 	}
 
-	lobbyState.placesByConnectedPlayerIds = make(map[int]int, maxPlayersAmount)
+	lobbyState.PlacesByConnectedPlayerIds = make(map[int]int, maxPlayersAmount)
 
 	return lobbyState
 }
@@ -38,7 +40,7 @@ func (lobbyState *LobbyState) AddPlayer(player *Player) error {
 		reservation := lobbyState.ConnectedPlayersByPlaces[position]
 		if reservation == nil {
 			lobbyState.ConnectedPlayersByPlaces[position] = player
-			lobbyState.placesByConnectedPlayerIds[player.ID] = position
+			lobbyState.PlacesByConnectedPlayerIds[player.ID] = position
 			return nil
 		}
 	}
@@ -51,7 +53,7 @@ func (lobbyState *LobbyState) RemovePlayer(playerId int) error {
 		positionReservation, reserved := lobbyState.ConnectedPlayersByPlaces[position]
 		if reserved && positionReservation.ID == playerId {
 			lobbyState.ConnectedPlayersByPlaces[position] = nil
-			delete(lobbyState.placesByConnectedPlayerIds, playerId)
+			delete(lobbyState.PlacesByConnectedPlayerIds, playerId)
 			return nil
 		}
 	}
@@ -60,7 +62,7 @@ func (lobbyState *LobbyState) RemovePlayer(playerId int) error {
 }
 
 func (lobbyState *LobbyState) ChangeReadyState(playerId int) bool {
-	place := lobbyState.placesByConnectedPlayerIds[playerId]
+	place := lobbyState.PlacesByConnectedPlayerIds[playerId]
 	player := lobbyState.ConnectedPlayersByPlaces[place]
 	player.IsReady = !player.IsReady
 

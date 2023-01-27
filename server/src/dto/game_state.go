@@ -1,24 +1,31 @@
 package dto
 
+import "math/rand"
+
 type GameState struct {
-	CurrentRound    int
-	PlayersByPlaces map[int]*Player
-	Deck            []PlayingCard
-	CardsOnTable    []PlayingCard
-	CurrentTurn     int
-	CurrentBet      int64
-	Bank            int64
+	CurrentRound int
+	Deck         []PlayingCard `json:"-"`
+	CardsOnTable []PlayingCard
+	CurrentTurn  int
+	CurrentBet   int64
+	Bank         int64
+	BigBlind     int
+	SmallBlind   int
 }
 
-func NewGameState(playersByPlaces map[int]*Player) *GameState {
+func NewGameState() *GameState {
 	gameState := new(GameState)
 	gameState.CurrentRound = 0
-	gameState.PlayersByPlaces = playersByPlaces
-	gameState.Deck = AvailableCards
-	gameState.CardsOnTable = make([]PlayingCard, 5)
+	gameState.Deck = make([]PlayingCard, len(AvailableCards), len(AvailableCards))
+	gameState.CardsOnTable = make([]PlayingCard, 0, 5)
 	gameState.CurrentTurn = 0
 	gameState.CurrentBet = 0
 	gameState.Bank = 0
+
+	copy(gameState.Deck, AvailableCards)
+	rand.Shuffle(len(gameState.Deck), func(i, j int) {
+		gameState.Deck[i], gameState.Deck[j] = gameState.Deck[j], gameState.Deck[i]
+	})
 
 	return gameState
 }
