@@ -1,6 +1,8 @@
 package common
 
-import "github.com/JeyXeon/poker-easy/model"
+import (
+	"github.com/JeyXeon/poker-easy/model"
+)
 
 type AccountRepository interface {
 	CreateAccount(account model.Account) (*model.Account, error)

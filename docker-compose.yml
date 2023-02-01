@@ -3,11 +3,24 @@ version: "3"
 services:
   poker-database:
     image: postgres:13.3
+    restart: always
     environment:
       POSTGRES_DB: "poker_easy"
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "123"
     volumes:
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pg_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+  poker-server:
+    build: ./server
+    depends_on:
+      - poker-database
+    ports:
+      - "80:8000"
+    expose:
+      - "8000"
+
+volumes:
+  pg_data:

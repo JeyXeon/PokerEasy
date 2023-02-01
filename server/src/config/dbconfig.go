@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	dbURL = "postgres://postgres:123@localhost:5432/poker_easy"
+	dbURL = "postgres://postgres:123@poker-database:5432/poker_easy"
 )
 
 func GetDbConnection() *pgxpool.Pool {
