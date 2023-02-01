@@ -18,9 +18,15 @@ services:
     depends_on:
       - poker-database
     ports:
-      - "80:8000"
+      - "8000:8000"
     expose:
       - "8000"
+  poker-front:
+    build: ./front
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
 
 volumes:
   pg_data:
