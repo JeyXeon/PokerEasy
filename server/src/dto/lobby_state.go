@@ -61,11 +61,13 @@ func (lobbyState *LobbyState) RemovePlayer(playerId int) error {
 	return errors.New("all places reserved")
 }
 
-func (lobbyState *LobbyState) ChangeReadyState(playerId int) bool {
+func (lobbyState *LobbyState) ChangeReadyState(playerId int) {
 	place := lobbyState.PlacesByConnectedPlayerIds[playerId]
 	player := lobbyState.ConnectedPlayersByPlaces[place]
 	player.IsReady = !player.IsReady
+}
 
+func (lobbyState *LobbyState) AllPlayersAreReady() bool {
 	allReady := true
 	for _, player := range lobbyState.ConnectedPlayersByPlaces {
 		if player != nil && !player.IsReady {

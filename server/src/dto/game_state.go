@@ -5,6 +5,7 @@ import "math/rand"
 type GameState struct {
 	CurrentRound int
 	Deck         []PlayingCard `json:"-"`
+	CardCounter  int
 	CardsOnTable []PlayingCard
 	CurrentTurn  int
 	CurrentBet   int64
@@ -21,6 +22,7 @@ func NewGameState() *GameState {
 	gameState.CurrentTurn = 0
 	gameState.CurrentBet = 0
 	gameState.Bank = 0
+	gameState.CardCounter = 0
 
 	copy(gameState.Deck, AvailableCards)
 	rand.Shuffle(len(gameState.Deck), func(i, j int) {

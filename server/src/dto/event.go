@@ -9,6 +9,7 @@ const (
 	StartGameEvent          = "START_GAME"
 	PlayerConnectedEvent    = "PLAYER_CONNECTED"
 	PlayerDisconnectedEvent = "PLAYER_DISCONNECTED"
+	PlayerCheckEvent        = "PLAYER_CHECK"
 )
 
 type Event struct {

@@ -22,11 +22,14 @@ func NewLobbyChannels() *LobbyChannels {
 	lobbyChannels.ConnectedChannel = make(chan *dto.Event)
 	lobbyChannels.DisconnectedChannel = make(chan *dto.Event)
 	lobbyChannels.ReadyStateChannel = make(chan *dto.Event)
+	lobbyChannels.GameEventsChannel = make(chan *dto.Event)
 	return lobbyChannels
 }
 
 type GameService struct {
 	LobbyEventPipesByLobbyIds   *common.RWLockerMap[*LobbyChannels]
+	StatesByLobbyIds            *common.RWLockerMap[*dto.LobbyState]
+	ConnectionsByLobbyIds       *common.RWLockerMap[*[]*websocket.Conn]
 	ConnectedAccountsByLobbyIds *common.RWLockerMap[[]*model.Account]
 	ConnectedAccountIds         *common.RWLockerMap[bool]
 
@@ -38,6 +41,8 @@ func GetGameService(accountService common.AccountService, lobbyService common.Lo
 	gameService := new(GameService)
 
 	gameService.LobbyEventPipesByLobbyIds = common.NewRWLockerMap(make(map[int]*LobbyChannels))
+	gameService.StatesByLobbyIds = common.NewRWLockerMap(make(map[int]*dto.LobbyState))
+	gameService.ConnectionsByLobbyIds = common.NewRWLockerMap(make(map[int]*[]*websocket.Conn))
 	gameService.ConnectedAccountsByLobbyIds = common.NewRWLockerMap(make(map[int][]*model.Account))
 	gameService.ConnectedAccountIds = common.NewRWLockerMap(make(map[int]bool))
 
@@ -48,48 +53,11 @@ func GetGameService(accountService common.AccountService, lobbyService common.Lo
 }
 
 func (gameService *GameService) ListenWebsocket(conn *websocket.Conn) {
-	accountService := gameService.accountService
-
 	lobbyEventPipesByLobbyIds := gameService.LobbyEventPipesByLobbyIds
-	connectedAccountIds := gameService.ConnectedAccountIds
 
-	lobbyIdParam, err := GetPathParamFromConnection(conn, "lobbyId")
-	if err != nil {
-		HandleError(conn, err, "LobbyIdParam param is not present")
-		return
-	}
-	lobbyId, err := strconv.Atoi(lobbyIdParam)
-	if err != nil {
-		HandleError(conn, err, "Invalid lobbyId param")
-		return
-	}
-
-	accountIdParam, err := GetQueryParamFromConnection(conn, "accountId")
-	if err != nil {
-		HandleError(conn, err, "AccountId param is not present")
-		return
-	}
-	accountId, err := strconv.Atoi(accountIdParam)
-	if err != nil {
-		HandleError(conn, err, "Invalid accountId param")
-		return
-	}
-
-	account, err := accountService.GetAccountById(accountId)
-	if err != nil {
-		HandleError(conn, err, fmt.Sprintf("Account with id %d doesn't exist", accountId))
-		return
-	}
+	lobbyId, account := gameService.validateConnectionAndGetParams(conn)
 
 	defer gameService.disconnectPlayer(account, lobbyId, conn)
-
-	_, accountConnected := connectedAccountIds.Load(accountId)
-	if !accountConnected {
-		if err := gameService.addActivePlayer(lobbyId, account, conn); err != nil {
-			HandleError(conn, err, fmt.Sprintf("Lobby with id %d doesn't exist", lobbyId))
-			return
-		}
-	}
 
 	for {
 		_, messageContent, err := conn.ReadMessage()
@@ -107,7 +75,54 @@ func (gameService *GameService) ListenWebsocket(conn *websocket.Conn) {
 			lobbyEventPipes, _ := lobbyEventPipesByLobbyIds.Load(lobbyId)
 			lobbyEventPipes.ReadyStateChannel <- event
 		}
+		if event.Body == dto.PlayerCheckEvent {
+			lobbyEventPipes, _ := lobbyEventPipesByLobbyIds.Load(lobbyId)
+			lobbyEventPipes.GameEventsChannel <- event
+		}
 	}
+}
+
+func (gameService *GameService) validateConnectionAndGetParams(conn *websocket.Conn) (lobbyId int, account *model.Account) {
+	accountService := gameService.accountService
+	connectedAccountIds := gameService.ConnectedAccountIds
+
+	lobbyIdParam, err := GetPathParamFromConnection(conn, "lobbyId")
+	if err != nil {
+		HandleError(conn, err, "LobbyIdParam param is not present")
+		return
+	}
+	lobbyId, err = strconv.Atoi(lobbyIdParam)
+	if err != nil {
+		HandleError(conn, err, "Invalid lobbyId param")
+		return
+	}
+
+	accountIdParam, err := GetQueryParamFromConnection(conn, "accountId")
+	if err != nil {
+		HandleError(conn, err, "AccountId param is not present")
+		return
+	}
+	accountId, err := strconv.Atoi(accountIdParam)
+	if err != nil {
+		HandleError(conn, err, "Invalid accountId param")
+		return
+	}
+
+	account, err = accountService.GetAccountById(accountId)
+	if err != nil {
+		HandleError(conn, err, fmt.Sprintf("Account with id %d doesn't exist", accountId))
+		return
+	}
+
+	_, accountConnected := connectedAccountIds.Load(accountId)
+	if !accountConnected {
+		if err := gameService.addActivePlayer(lobbyId, account, conn); err != nil {
+			HandleError(conn, err, fmt.Sprintf("Lobby with id %d doesn't exist", lobbyId))
+			return
+		}
+	}
+
+	return lobbyId, account
 }
 
 func (gameService *GameService) disconnectPlayer(account *model.Account, lobbyId int, conn *websocket.Conn) {
@@ -192,29 +207,30 @@ func (gameService *GameService) ProcessLobby(lobby *model.Lobby, lobbyChannels *
 	connectedChannel := lobbyChannels.ConnectedChannel
 	disconnectedChannel := lobbyChannels.DisconnectedChannel
 	readyStateChannel := lobbyChannels.ReadyStateChannel
+	gameEventsChanel := lobbyChannels.GameEventsChannel
 
-	connections := make([]*websocket.Conn, 0)
-	lobbyState := dto.NewLobbyState(lobby)
 	lobbyId := lobby.ID
+	connections := make([]*websocket.Conn, 0)
+	gameService.ConnectionsByLobbyIds.Store(lobbyId, &connections)
+	lobbyState := dto.NewLobbyState(lobby)
+	gameService.StatesByLobbyIds.Store(lobbyId, lobbyState)
 
 	for {
 		select {
 		case event := <-connectedChannel:
-			gameService.processPlayerConnection(event, lobbyState, &connections)
+			gameService.processPlayerConnection(event, lobbyId)
 
 		case event := <-disconnectedChannel:
-			if len(connections) == 1 {
-				gameService.LobbyEventPipesByLobbyIds.Delete(lobbyId)
+			lobbyIsEmpty := gameService.processPlayerDisconnection(event, lobbyId)
+			if lobbyIsEmpty {
 				break
-			} else {
-				gameService.processPlayerDisconnection(event, lobbyState, &connections)
 			}
 
 		case event := <-readyStateChannel:
-			allReady := gameService.processReadyStateChanging(event, lobbyState, &connections)
-			if allReady {
-				gameService.processGameStart(lobbyChannels, connections, lobbyState)
-			}
+			gameService.processReadyStateChanging(event, lobbyId)
+
+		case event := <-gameEventsChanel:
+			gameService.processCheckEvent(event, lobbyId)
 		}
 	}
 }
